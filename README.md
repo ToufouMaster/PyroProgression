@@ -39,6 +39,7 @@ This is a mod that adds XP when killing enemies, levels and scaling of the playe
 - You can fix the levels of your artifacts by typing '/fixartifacts' in chat.
 - Each artifact you obtain increases the number of skill points you can spend by 1.
 - You can spend skill points on combat stats, but the more points you put into a skill, the more it will cost.
+- You can open the skill points window by pressing ESC.
 
 ## Installation
 Download the latest version of `PyroProgression_v.x.x.zip` from the latest release from [the release page](https://github.com/thetrueoneshots/PyroProgression/releases). If this `.zip` file includes a `CubeModLoader.fip` you will have to put that file in the same directory as your `cubeworld.exe`. If such a file is not added, you can get the latest modloader release from [the modloader release page](https://github.com/thetrueoneshots/Cube-World-Mod-Launcher/releases). You will have to create a new folder called mods in the folder where your `cubeworld.exe` is located if you do not have one already. You will have to put the `PyroProgression_v.x.x.dll` there. That is all there is to it! Enjoy playing
