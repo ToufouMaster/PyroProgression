@@ -1,3 +1,9 @@
+# This is a fork of the official PyroProgression.
+I'm Owen, and i'm adding stuff to PyroProgression because Nichiren is not (i love his work)
+So my versions are likely going to be discontinued when he will come back, but for now enjoy my additions
+(v1.6 and cubemegamod user only: dont forget to download the new CubeMegaMod version that fixes bugs with the current version of PyroProgression
+Link here: https://github.com/ToufouMaster/CubeMegaMod/releases/tag/1.5.7-pyro2)
+
 # PyroProgression
 A Cube World steam release mod that adds an alpha like XP and levelling playstyle.
 
@@ -20,6 +26,7 @@ This is a mod that adds XP when killing enemies, levels and scaling of the playe
 - XP is gained based on the level, star rating and type of enemy **if and only if you or your pet kills the creature**. *(This means having the actual last damaging hit)*
 - Gaining XP will fill up the XP-bar and your character will Level Up if the treshold is reached.
 - On level up, your health will be restored to full.
+- On level up, you gain 2 skill points to spend on combat stats.
 - Each level gives extra stats on your health, damage, crit, haste, armor, resistance and stamina.
 - Each region further away from your starting region *(set automatically)* increases the level of creatures and gear there.
   - The first region has enemies from LV 1 - 5, and each region afterwards has the levels of their creatures increased by 3.
@@ -29,11 +36,29 @@ This is a mod that adds XP when killing enemies, levels and scaling of the playe
 - You can only equip gear that is a maximum of 0 levels higher than your current level.
 - Gold drops are scaled by enemy level.
 - You can recenter the players region by typing `/recenter` in the chat.
+- You can fix the levels of your artifacts by typing '/fixartifacts' in chat.
+- Each artifact you obtain increases the number of skill points you can spend by 1.
+- You can spend skill points on combat stats, but the more points you put into a skill, the more it will cost.
 
 ## Installation
 Download the latest version of `PyroProgression_v.x.x.zip` from the latest release from [the release page](https://github.com/thetrueoneshots/PyroProgression/releases). If this `.zip` file includes a `CubeModLoader.fip` you will have to put that file in the same directory as your `cubeworld.exe`. If such a file is not added, you can get the latest modloader release from [the modloader release page](https://github.com/thetrueoneshots/Cube-World-Mod-Launcher/releases). You will have to create a new folder called mods in the folder where your `cubeworld.exe` is located if you do not have one already. You will have to put the `PyroProgression_v.x.x.dll` there. That is all there is to it! Enjoy playing
 
 ## Changelog
+- `[v.1.6]` Reverted scaling again, skillpoint system and artifact levels.
+    - Reverted the XP system back to the v.1.4 version temporaly to avoid NicOz modpack incompatibility.
+    - Reverted the v1.5 scaling balance of gears.
+    - Added a skillpoint system with combat stat increase as it's core.
+    - Added levels to artifacts that increase passive stats like riding speed more.
+- `[v.1.5]` Reverted scaling and region names
+    - Reverted the XP system back to the v.1.1 version.
+    - Increases the scaling cost of items in the shops.
+    - (Tried) to balance the scaling of gear more.
+    - The big region name in the top right corner now also displays the region level.
+- `[v.1.4]` Star rating bug and scaling buffs
+    - Bug fixed which caused a higher star and higher level weapon to have worse stats than a lower star and lower level weapon.
+    - Lowered XP gain and curve by a factor of 100 for a more appealing scaling.
+    - Enemies, player and gear is scaled up.
+    - Bug fixed which caused the `/recenter` command to show still show the enemies old health stats. 
 - `[v.1.3]` Enemy and player scaling updates
     - Enemy and items range from 1-5 * region distance
     - Player starting stats are lowered
