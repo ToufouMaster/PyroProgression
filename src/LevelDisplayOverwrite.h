@@ -9,7 +9,7 @@ void PutText(void* unk, wchar_t* buffer)
 
 extern "C" void OverwriteItemName(cube::Item * item, std::wstring * string)
 {
-	if (item->category < 3 || item->category > 9)
+	if ((item->category < 3 || item->category > 9) && (item->category != 23)) // 3-9 Armor / 23 Artifacts
 	{
 		return;
 	}

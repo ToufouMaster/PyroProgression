@@ -2,7 +2,7 @@
 #include "../CWSDK/cwsdk.h"
 #include "utility.h"
 
-extern "C" void RegionTextDrawOverwrite(plasma::Node* node, std::wstring* string)
+extern "C" void RegionTextDrawOverwrite(plasma::Node * node, std::wstring * string)
 {
 	auto distance = GetRegionDistance(cube::GetGame()->GetPlayer()->entity_data.current_region);
 	long long upper = (distance + 1) * LEVELS_PER_REGION;
@@ -21,8 +21,8 @@ extern "C" void RegionTextDrawOverwrite(plasma::Node* node, std::wstring* string
 	{
 		swprintf_s(buffer, 250, L"LV.%dM ", (upper / 1000000));
 	}
-	
-	
+
+
 	*string = buffer + *string;
 	node->SetText(string);
 	return;
@@ -32,7 +32,7 @@ GETTER_VAR(void*, ASM_RegionTextDrawOverwrite_jmpback);
 GETTER_VAR(void*, ASM_RegionTextDrawOverwrite_bail);
 __attribute__((naked)) void ASM_RegionTextDrawOverwrite() {
 	asm(".intel_syntax \n"
-		
+
 		// String is already set in rdx
 		"mov rcx, [r13 + 0x2D0] \n"
 		"call RegionTextDrawOverwrite \n"

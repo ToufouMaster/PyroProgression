@@ -9,9 +9,12 @@
 #include "src/utility.h"
 #include "src/XPOverwrite.h"
 #include "src/LevelDisplayOverwrite.h"
+#include "src/ArtifactStatsOverwrite.h"
 #include "src/GearScalingOverWrite.h"
 #include "src/GoldDropOverWrite.h"
 #include "src/RegionTextDrawOverwrite.h"
+#include "GuiWindow.h"
+#include "src/OnCharacterLoaded.h"
 
 void OnLevelUp(cube::Game* game, cube::Creature* creature)
 {
@@ -43,6 +46,11 @@ void OnLevelUp(cube::Game* game, cube::Creature* creature)
 */
 class Mod : GenericMod {
 
+private:
+	GuiWindow* guiWindow;
+
+	// Progression Variables
+
 	std::map<int, float> m_PlayerScaling;
 	std::map<int, float> m_CreatureScaling;
 
@@ -59,6 +67,7 @@ class Mod : GenericMod {
 	};
 
 	std::vector<cube::TextFX> m_FXList;
+
 
 	void GainXP(cube::Game* game, int xp)
 	{
@@ -85,6 +94,38 @@ class Mod : GenericMod {
 		game->GetPlayer()->entity_data.XP += xp;
 	}
 
+	bool fixRecenter(cube::Game* game, cube::Creature* player) {
+		// Set new center region
+		player->entity_data.equipment.unk_item.region = player->entity_data.current_region;
+
+		// Reset HP of all creatures
+		for (cube::Creature* creature : game->world->creatures)
+		{
+			if (creature->entity_data.hostility_type == cube::Creature::EntityBehaviour::Player)
+			{
+				// To ensure that this command is not misused as a full heal
+				creature->entity_data.HP = std::min<float>(creature->GetMaxHP(), creature->entity_data.HP);
+			}
+			else
+			{
+				creature->entity_data.HP = creature->GetMaxHP();
+			}
+
+		}
+
+		// Display succes message
+		game->PrintMessage(L"[Notification] Correctly recentered player region.\n", 0, 255, 0);
+	}
+
+	bool fixArtifacts(cube::Game* game, cube::Creature* player) {
+		auto relic_vec = player->inventory_tabs.at(5);
+		for (int id = 0; id < relic_vec.size(); id++) {
+			player->inventory_tabs.at(5).at(id).item.region = player->entity_data.current_region;
+		}
+		game->PrintMessage(L"[Notification] Correctly fixed artifacts region.\n", 0, 255, 0);
+		return true;
+	}
+
 	/* Hook for the chat function. Triggers when a user sends something in the chat.
 	 * @param	{std::wstring*} message
 	 * @return	{int}
@@ -102,26 +143,21 @@ class Mod : GenericMod {
 				return 1;
 			}
 
-			// Set new center region
-			player->entity_data.equipment.unk_item.region = player->entity_data.current_region;
+			fixRecenter(game, player);
+			fixArtifacts(game, player);
+			return 1;
+		} else if (!wcscmp(str, L"/fixartifacts"))
+		{
+			cube::Game* game = cube::GetGame();
+			cube::Creature* player = game->GetPlayer();
 
-			// Reset HP of all creatures
-			for (cube::Creature* creature : game->world->creatures)
+			if (!player)
 			{
-				if (creature->entity_data.hostility_type == cube::Creature::EntityBehaviour::Player)
-				{
-					// To ensure that this command is not misused as a full heal
-					creature->entity_data.HP = std::min<float>(creature->GetMaxHP(), creature->entity_data.HP);
-				}
-				else
-				{
-					creature->entity_data.HP = creature->GetMaxHP();
-				}
-				
+				game->PrintMessage(L"[Error] No local player found!\n", 255, 0, 0);
+				return 1;
 			}
 
-			// Display succes message
-			game->PrintMessage(L"[Notification] Correctly recentered player region.\n", 0, 255, 0);
+			fixArtifacts(game, player);
 			return 1;
 		}
 		return 0;
@@ -163,7 +199,6 @@ class Mod : GenericMod {
 		{
 			return;
 		}
-
 		// Show and move xp bar and level info
 		plasma::Node* node = game->gui.levelinfo_node;
 		node->SetVisibility(true);
@@ -207,6 +242,38 @@ class Mod : GenericMod {
 			}
 		}
 
+		// Todo: move this part to a specific function.
+		auto relic_vec = player->inventory_tabs.at(5);
+		int climbing_amount = 0;
+		int swimming_amount = 0;
+		int diving_amount = 0;
+		int riding_amount = 0;
+		int gliding_amount = 0;
+		int sailing_amount = 0;
+		int light_amount = 0;
+		for (int id = 0; id < relic_vec.size(); id++) {
+			cube::ItemStack *relic_stack = &relic_vec[id];
+			cube::Item* relic = &relic_stack->item;
+			int item_level = GetItemLevel(relic) - 1;
+			int modifier = relic->modifier % 7;
+			if (modifier == 0) climbing_amount += item_level;
+			if (modifier == 1) swimming_amount += item_level;
+			if (modifier == 2) diving_amount += item_level;
+			if (modifier == 3) riding_amount += item_level;
+			if (modifier == 4) gliding_amount += item_level;
+			if (modifier == 5) sailing_amount += item_level;
+			if (modifier == 6) light_amount += item_level;
+		}
+		int level = entity_data->level;
+		player->climbing_speed = climbing_amount;
+		player->swimming_speed = swimming_amount;
+		player->diving_skill = diving_amount;
+		player->riding_speed = riding_amount;
+		player->hang_gliding_speed = gliding_amount;
+		player->sailing_speed = sailing_amount;
+		player->lamp_diameter = light_amount;
+
+		// Networking part
 		uint32 size = 0;
 		if (cube::SteamNetworking()->IsP2PPacketAvailable(&size, 2))
 		{
@@ -217,36 +284,18 @@ class Mod : GenericMod {
 			BytesIO package(buffer, size);
 
 			int pkg_id = package.Read<int>();
-			int xp = package.Read<int>();
+			int value = package.Read<int>();
 
-			if (pkg_id == 0x1)
-			{
-				GainXP(game, xp);
+			switch (pkg_id)	{
+			case 0x1:
+				GainXP(game, value);
+				break;
 			}
 		}
 
-		// ### Set region text: not working since it is reset before drawing... ###
-
-		/*IntVector2 region = player->entity_data.current_region;
-		int seed = ((int (*)(int, int))CWOffset(0x2FF5C0))(region.x, region.y); // Get some seed
-		std::wstring region_name;
-		((void (*)(std::wstring*, int, int))CWOffset(0x611D0))(&region_name, seed, -1);
-
-		int biome_type = game->world->GetRegionBiomeType(region.x, region.y);
-		std::wstring region_type;
-		game->speech.GetBiomeName(&region_type, biome_type);
-
-		wchar_t buffer[250];
-
-		swprintf_s(buffer, 250, L"LV. 5 %ws", region_type.c_str());
-
-		std::wstring text(buffer);
-		game->gui.info_node_1->SetText(&text);
-		*/
 		return;
 	}
 
-	// Called for the host only
 	virtual void OnCreatureDeath(cube::Game* game, cube::Creature* creature, cube::Creature* attacker) override {
 		if (creature == nullptr)
 		{
@@ -274,11 +323,19 @@ class Mod : GenericMod {
 		if (attacker->entity_data.hostility_type == cube::Creature::EntityBehaviour::Player ||
 			attacker->entity_data.hostility_type == cube::Creature::EntityBehaviour::Pet)
 		{
-			int level = GetCreatureLevel(creature);
+			int level = GetCreatureLevel(creature) + 1;
 			int stars = creature->entity_data.level + 1;
+			const static float multiplier = 1.0f / (LEVELS_PER_REGION + 1.0f);
 			cube::Creature* player = game->GetPlayer();
 
-			float xp_gain = level * stars;
+			float xp_gain = stars;
+
+			if (player->entity_data.level > GetCreatureLevel(creature)) {
+				xp_gain *= std::pow((float)level / (float)player->entity_data.level, 3);
+			}
+			else {
+				xp_gain *= (1 + multiplier * (GetCreatureLevel(creature) - player->entity_data.level)) * std::powf(1.05f, GetCreatureLevel(creature) - player->entity_data.level);
+			}
 
 			if ((creature->entity_data.appearance.flags2 & (1 << (int)cube::Creature::AppearanceModifiers::IsBoss)) != 0)
 			{
@@ -305,12 +362,17 @@ class Mod : GenericMod {
 				BytesIO bytesio;
 
 				bytesio.Write<u32>(0x01); //Packet ID
-				bytesio.Write<u32>((int)(xp_gain / game->host.connections.size())); //Message size
+				int value = (int)(xp_gain / game->host.connections.size());
+				if (value == 0) value++; // remove the +0xp bug when playing in multiplayer (5xp/6players < 1xp)
+				bytesio.Write<u32>(value); //Message size
 
 				for (auto& conn : game->host.connections)
 				{
 					cube::SteamNetworking()->SendP2PPacket(conn.first, bytesio.Data(), bytesio.Size(), k_EP2PSendReliable, 2);
 				}
+			}
+			else { // Offline no exp FIX https://github.com/thetrueoneshots/PyroProgression/issues/23
+				GainXP(game, (int)xp_gain);
 			}
 		}
 	}
@@ -368,11 +430,13 @@ class Mod : GenericMod {
 	 * @return	{void}
 	*/
 	virtual void Initialize() override {
+		Setup_RegionTextDrawOverwrite();
 		Setup_OverwriteGoldDrops();
 		Setup_XP_Overwrite();
 		Setup_LevelDisplayOverwrite();
 		Setup_GearScalingOverwrite();
-		Setup_RegionTextDrawOverwrite();
+		Setup_ArtifactStatsOverwrite();
+		//Setup_cube__Game__LoadCharacter();
 
 		// ##### PLAYER ######
 		// Defense
@@ -406,6 +470,9 @@ class Mod : GenericMod {
 		m_PlayerScaling.insert_or_assign(STAT_TYPE::STAMINA, 0);
 		m_PlayerScaling.insert_or_assign(STAT_TYPE::MANA, 0);
 
+		// ##### SKILLS #####
+		//LoadKeyBinds();
+		guiWindow = new GuiWindow();
 		return;
 	}
 
@@ -451,20 +518,71 @@ class Mod : GenericMod {
 		
 		}
 	}
+	
+	void ApplySkillBuff(cube::Creature* creature, float* stat, STAT_TYPE type)
+	{
+		cube::Game* game = cube::GetGame();
+		if (!game)
+		{
+			return;
+		}
 
+		if (creature->id == game->GetPlayer()->id)
+		{
+			switch (type)
+			{
+			case STAT_TYPE::ATK_POWER:
+				*stat *= 1 + guiWindow->getAtkPowerBuff();
+				break;
+			case STAT_TYPE::ARMOR:
+				*stat *= 1 + guiWindow->getArmorBuff();
+				break;
+			case STAT_TYPE::RESISTANCE:
+				*stat *= 1 + guiWindow->getResistanceBuff();
+				break;
+			case STAT_TYPE::HEALTH:
+				*stat *= 1 + guiWindow->getHealthBuff();
+				break;
+			case STAT_TYPE::MANA:
+				*stat *= 1 + guiWindow->getManaBuff();
+				break;
+			case STAT_TYPE::CRIT:
+				*stat *= 1 + guiWindow->getCritBuff();
+				break;
+			case STAT_TYPE::HASTE:
+				*stat *= 1 + guiWindow->getHasteBuff();
+				break;
+			}
+		}
+	}
+
+	virtual void OnPresent(IDXGISwapChain* SwapChain, UINT SyncInterval, UINT Flags) {
+		guiWindow->Present();
+	}
+
+	int Mod::OnWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+		return guiWindow->WindowProc(hwnd, uMsg, wParam, lParam);
+	}
+
+	void Mod::OnGetKeyboardState(BYTE* diKeys) {
+		guiWindow->OnGetKeyboardState(diKeys);
+	}
 
 	virtual void OnCreatureArmorCalculated(cube::Creature* creature, float* armor) override {
 		ApplyStatBuff(creature, armor, STAT_TYPE::ARMOR);
 		ApplyCreatureBuff(creature, armor, STAT_TYPE::ARMOR);
+		ApplySkillBuff(creature, armor, STAT_TYPE::ARMOR);
 	}
 
 	virtual void OnCreatureCriticalCalculated(cube::Creature* creature, float* critical) override {
 		ApplyStatBuff(creature, critical, STAT_TYPE::CRIT);
+		ApplySkillBuff(creature, critical, STAT_TYPE::CRIT);
 	}
 
 	virtual void OnCreatureAttackPowerCalculated(cube::Creature* creature, float* power) override {
 		ApplyStatBuff(creature, power, STAT_TYPE::ATK_POWER);
 		ApplyCreatureBuff(creature, power, STAT_TYPE::ATK_POWER);
+		ApplySkillBuff(creature, power, STAT_TYPE::ATK_POWER);
 	}
 
 	virtual void OnCreatureSpellPowerCalculated(cube::Creature* creature, float* power) override {
@@ -474,6 +592,7 @@ class Mod : GenericMod {
 
 	virtual void OnCreatureHasteCalculated(cube::Creature* creature, float* haste) override {
 		ApplyStatBuff(creature, haste, STAT_TYPE::HASTE);
+		ApplySkillBuff(creature, haste, STAT_TYPE::HASTE);
 	}
 
 	virtual void OnCreatureHPCalculated(cube::Creature* creature, float* hp) override {
@@ -485,11 +604,13 @@ class Mod : GenericMod {
 
 		ApplyStatBuff(creature, hp, STAT_TYPE::HEALTH);
 		ApplyCreatureBuff(creature, hp, STAT_TYPE::HEALTH);
+		ApplySkillBuff(creature, hp, STAT_TYPE::HEALTH);
 	}
 
 	virtual void OnCreatureResistanceCalculated(cube::Creature* creature, float* resistance) override {
 		ApplyStatBuff(creature, resistance, STAT_TYPE::RESISTANCE);
 		ApplyCreatureBuff(creature, resistance, STAT_TYPE::RESISTANCE);
+		ApplySkillBuff(creature, resistance, STAT_TYPE::RESISTANCE);
 	}
 
 	virtual void OnCreatureRegenerationCalculated(cube::Creature* creature, float* regeneration) override {
@@ -498,6 +619,7 @@ class Mod : GenericMod {
 
 	virtual void OnCreatureManaGenerationCalculated(cube::Creature* creature, float* manaGeneration) override {
 		ApplyStatBuff(creature, manaGeneration, STAT_TYPE::MANA);
+		ApplySkillBuff(creature, manaGeneration, STAT_TYPE::MANA);
 	}
 };
 

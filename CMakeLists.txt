@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.8)
 project(project_PyroProgression)
 add_subdirectory(CWSDK)
-add_library (PyroProgression SHARED "main.cpp" "src/XPOverwrite.h"  "src/LevelDisplayOverwrite.h" "src/utility.h" "src/utility.cpp" "src/GearScalingOverWrite.h" "src/GoldDropOverWrite.h" "src/RegionTextDrawOverwrite.h")
+add_subdirectory(imgui-1.73)
+add_library (PyroProgression SHARED "main.cpp" "src/XPOverwrite.h"  "src/LevelDisplayOverwrite.h" "src/ArtifactStatsOverwrite.h" "src/utility.h" "src/utility.cpp" "src/GearScalingOverWrite.h" "src/GoldDropOverWrite.h" "src/RegionTextDrawOverwrite.h" "src/OnCharacterLoaded.h" "GuiWindow.cpp" "GuiWindow.h" "src/ArtifactStatsOverwrite.h")
 target_link_libraries (PyroProgression LINK_PUBLIC CWSDK)
+target_link_libraries (PyroProgression LINK_PUBLIC IMGUI)
