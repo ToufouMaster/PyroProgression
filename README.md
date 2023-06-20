@@ -49,6 +49,8 @@ Download the latest version of `PyroProgression_v.x.x.zip` from the latest relea
     - Reverted the v1.5 scaling balance of gears.
     - Added a skillpoint system with combat stat increase as it's core.
     - Added levels to artifacts that increase passive stats like riding speed more.
+    - Bug fixed which caused Offline players to not earn any XP
+    - Bug fixed which caused big multiplayer parties to earn 0xp in early game.
 - `[v.1.5]` Reverted scaling and region names
     - Reverted the XP system back to the v.1.1 version.
     - Increases the scaling cost of items in the shops.
